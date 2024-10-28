@@ -1,12 +1,14 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Button, Input, RTE, Select } from "..";
+import { Button, Input, Select } from "..";
 import appwriteService from "../../appwrite/config";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import Quill from "quill";  // Import Quill for rich text editing
+import "quill/dist/quill.snow.css";  // Quill styles
 
 export default function PostForm({ post }) {
-    const { register, handleSubmit, watch, setValue, control, getValues } = useForm({
+    const { register, handleSubmit, watch, setValue, getValues } = useForm({
         defaultValues: {
             title: post?.title || "",
             slug: post?.$id || "",
@@ -17,18 +19,55 @@ export default function PostForm({ post }) {
 
     const navigate = useNavigate();
     const userData = useSelector((state) => state.auth.userData);
+    const editorRef = useRef(null);
+    const [editor, setEditor] = useState(null);  // Track the Quill instance
+    const [editorContent, setEditorContent] = useState(post?.content || "");
+
+    useEffect(() => {
+        if (!editor) {
+            const quill = new Quill(editorRef.current, {
+                theme: "snow",
+                readOnly: false,
+                placeholder: "Write your content here...",
+                modules: {
+                    toolbar: [
+                        [{ header: [1, 2, 3, false] }],
+                        ["bold", "italic", "underline", "strike"],
+                        [{ list: "ordered" }, { list: "bullet" }],
+                        ["link", "image"],
+                        ["clean"],
+                    ],
+                },
+            });
+
+            quill.on("text-change", () => {
+                const html = quill.root.innerHTML;
+                setEditorContent(html);
+                setValue("content", html);
+            });
+
+            // Initialize with existing content
+            if (post?.content) {
+                quill.root.innerHTML = post.content;
+            }
+
+            setEditor(quill);  // Save the Quill instance
+        }
+    }, [post, setValue, editor]);
 
     const submit = async (data) => {
-        if (post) {
-            const file = data.image[0] ? await appwriteService.uploadFile(data.image[0]) : null;
+        data.content = editorContent;  // Ensure content from editor is submitted
 
-            if (file) {
-                appwriteService.deleteFile(post.featuredImage);
+        if (post) {
+            const file = data.image?.[0] ? await appwriteService.uploadFile(data.image[0]) : null;
+
+            if (file && post.featuredImage) {
+                await appwriteService.deleteFile(post.featuredImage);
             }
 
             const dbPost = await appwriteService.updatePost(post.$id, {
                 ...data,
-                featuredImage: file ? file.$id : undefined,
+                featuredImage: file ? file.$id : post.featuredImage,
             });
 
             if (dbPost) {
@@ -38,8 +77,7 @@ export default function PostForm({ post }) {
             const file = await appwriteService.uploadFile(data.image[0]);
 
             if (file) {
-                const fileId = file.$id;
-                data.featuredImage = fileId;
+                data.featuredImage = file.$id;
                 const dbPost = await appwriteService.createPost({ ...data, userId: userData.$id });
 
                 if (dbPost) {
@@ -50,17 +88,17 @@ export default function PostForm({ post }) {
     };
 
     const slugTransform = useCallback((value) => {
-        if (value && typeof value === "string")
+        if (value && typeof value === "string") {
             return value
                 .trim()
                 .toLowerCase()
                 .replace(/[^a-zA-Z\d\s]+/g, "-")
                 .replace(/\s/g, "-");
-
+        }
         return "";
     }, []);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const subscription = watch((value, { name }) => {
             if (name === "title") {
                 setValue("slug", slugTransform(value.title), { shouldValidate: true });
@@ -88,7 +126,10 @@ export default function PostForm({ post }) {
                         setValue("slug", slugTransform(e.currentTarget.value), { shouldValidate: true });
                     }}
                 />
-                <RTE label="Content :" name="content" control={control} defaultValue={getValues("content")} />
+                <div className="mb-4">
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Content :</label>
+                    <div ref={editorRef} className="bg-white border border-gray-300 rounded-lg p-2 min-h-[200px]" />
+                </div>
             </div>
             <div className="w-1/3 px-2">
                 <Input
@@ -98,7 +139,7 @@ export default function PostForm({ post }) {
                     accept="image/png, image/jpg, image/jpeg, image/gif"
                     {...register("image", { required: !post })}
                 />
-                {post && (
+                {post && post.featuredImage && (
                     <div className="w-full mb-4">
                         <img
                             src={appwriteService.getFilePreview(post.featuredImage)}
