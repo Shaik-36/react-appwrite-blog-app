@@ -6,6 +6,7 @@ export class Service{
     databases;
     bucket;
     
+    // Constructor Function
     constructor(){
         this.client
         .setEndpoint(conf.appwriteUrl)
@@ -14,6 +15,7 @@ export class Service{
         this.bucket = new Storage(this.client);
     }
 
+    // Create a Post 
     async createPost({title, slug, content, featuredImage, status, userId}){
         try {
             return await this.databases.createDocument(
@@ -33,6 +35,7 @@ export class Service{
         }
     }
 
+    // Update a Post
     async updatePost(slug, {title, content, featuredImage, status}){
         try {
             return await this.databases.updateDocument(
@@ -52,6 +55,8 @@ export class Service{
         }
     }
 
+
+    // Delete Post
     async deletePost(slug){
         try {
             await this.databases.deleteDocument(
@@ -67,6 +72,7 @@ export class Service{
         }
     }
 
+    // Get a Post
     async getPost(slug){
         try {
             return await this.databases.getDocument(
@@ -81,6 +87,7 @@ export class Service{
         }
     }
 
+    // Get All Posts
     async getPosts(queries = [Query.equal("status", "active")]){
         try {
             return await this.databases.listDocuments(
@@ -96,8 +103,8 @@ export class Service{
         }
     }
 
-    // file upload service
 
+    // file upload service (Image)
     async uploadFile(file){
         try {
             return await this.bucket.createFile(
@@ -111,6 +118,7 @@ export class Service{
         }
     }
 
+    // Delete File
     async deleteFile(fileId){
         try {
             await this.bucket.deleteFile(
@@ -124,6 +132,7 @@ export class Service{
         }
     }
 
+    // Get File
     getFilePreview(fileId){
         return this.bucket.getFilePreview(
             conf.appwriteBucketId,

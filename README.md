@@ -123,8 +123,8 @@ To make sure we don't make errors using below
 + Create a file called ' config.js ' in the appwrite folder
 
 
-```
-    How to configure redux toolkit in big projects - Creating Store 
+
+###   How to configure redux toolkit in big projects - Creating Store 
 
     Store - A store holds the whole state tree of your application. 
 
@@ -132,7 +132,7 @@ To make sure we don't make errors using below
     which triggers the root reducer function to calculate the new state.
     
     A store is not a class. It's just an object with a few methods on it.
-```
+
 
 
 
