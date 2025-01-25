@@ -1,4 +1,5 @@
-
+£Blog Website Built using React(Frontend) and Appwrite(Backend)
+![image](https://github.com/user-attachments/assets/7722d6b6-4e2f-4189-b52b-c6d506a41118)
 
 
 # Tech Stack Used
